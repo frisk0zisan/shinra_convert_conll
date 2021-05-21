@@ -1,5 +1,7 @@
 import copy
 import json
+#import gc
+from tqdm import tqdm
 from collections import defaultdict
 
 
@@ -138,6 +140,7 @@ def load_tokens(path, annotations, split_idx=set(), vocab=None, single=True):
             [i.fill_label(is_train) for i in sent_iobs]
             sent_iobs = split_iobs(sent_iobs, [page_id, line_id], split_idx, is_train)
             iobs.extend(sent_iobs)
+            del sent_iobs
 
     return iobs
 
@@ -170,13 +173,14 @@ def convert_tokenized_to_conll(path, output_dir=None, single=False):
     token_files = (path / "tokens").glob("*.txt")
     train_iobs = []
     test_iobs = []
-
-    for file_name in token_files:
+    for file_name in tqdm(token_files):
         iobs = load_tokens(file_name, annotations, set([word2idx["。"]]), vocab, single)
         if iobs[0].is_train:
             train_iobs.extend(iobs)
         else:
             test_iobs.extend(iobs)
+        del iobs
+        #gc.collect()
 
     with open(output_dir / "train.iob", "w") as f:
         f.write("\n\n".join([iob.output_format for iob in train_iobs]))
